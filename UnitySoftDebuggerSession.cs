@@ -160,7 +160,10 @@ namespace MonoDevelop.Debugger.Soft.Unity
 				int port = (int)(56000 + (player.m_Guid % 1000));
 				
 				if (player.m_Proxy)
+				{
+					port = player.m_IPEndPoint.Port;
 					PlayerConnection.LaunchProxy(port);
+				}
 					
 				try {
 					StartConnecting (new SoftDebuggerStartInfo (new SoftDebuggerConnectArgs (player.m_Id, player.m_IPEndPoint.Address, (int)port)), 3, 1000);

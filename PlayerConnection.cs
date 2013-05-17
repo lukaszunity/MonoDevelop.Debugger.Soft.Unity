@@ -51,6 +51,7 @@ namespace MonoDevelop.Debugger.Soft.Unity
 		private static string s_BasePath = AppDomain.CurrentDomain.BaseDirectory;
 		private static string s_IProxyLocation = Path.Combine (s_BasePath, "../../../../../../Unity.app/Contents/BuildTargetTools/iPhonePlayer/iproxy");
 		public static bool s_IProxySupported = File.Exists(s_IProxyLocation);
+		private static List<Process> s_LaunchedProxies = new List<Process>();
 		
 		private Socket m_MulticastSocket = null;
 		private Dictionary<string,int> m_AvailablePlayers = new Dictionary<string,int>();
@@ -169,6 +170,12 @@ namespace MonoDevelop.Debugger.Soft.Unity
 		
 		public static void LaunchProxy(int port)
 		{
+			foreach (var proxy in s_LaunchedProxies)
+			{
+				proxy.Kill();
+				proxy.WaitForExit();
+			}
+		
 			ProcessStartInfo startInfo = new ProcessStartInfo(s_IProxyLocation, "" + port + " " + port);
 			Process iproxy = new Process ();
 				
@@ -182,7 +189,7 @@ namespace MonoDevelop.Debugger.Soft.Unity
 			
 			iproxy.BeginOutputReadLine();
 			
-			//runningIProxies.Add(iproxy);
+			s_LaunchedProxies.Add(iproxy);
 		}
 	}
 }
