@@ -109,9 +109,8 @@ namespace MonoDevelop.Debugger.Soft.Unity
 		
 		public PlayerConnection ()
 		{
-			const int numSockets = 3;
 			m_MulticastSockets = new List<Socket> ();
-			for (int i = 0; i < numSockets; ++i)
+			foreach (int port in PLAYER_MULTICAST_PORTS)
 			{
 				try
 				{
@@ -122,7 +121,7 @@ namespace MonoDevelop.Debugger.Soft.Unity
 						// This option is not supported on some OSs
 					}
 					multicastSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-					IPEndPoint ipep = new IPEndPoint(IPAddress.Any, PLAYER_MULTICAST_PORTS[i]);
+					IPEndPoint ipep = new IPEndPoint(IPAddress.Any, port);
 					multicastSocket.Bind(ipep);
 
 					IPAddress ip = IPAddress.Parse(PLAYER_MULTICAST_GROUP);
