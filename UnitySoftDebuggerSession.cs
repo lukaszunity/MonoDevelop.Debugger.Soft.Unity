@@ -62,7 +62,12 @@ namespace MonoDevelop.Debugger.Soft.Unity
 			};
 			MonoDevelop.Ide.IdeApp.Exiting += (sender,args) => EndSession();
 		}
-		
+
+		protected override SoftDebuggerAdaptor CreateSoftDebuggerAdaptor ()
+		{
+			return new UnitySoftDebuggerAdaptor ();
+		}
+
 		protected override void OnRun (DebuggerStartInfo startInfo)
 		{
 			var dsi = (UnityDebuggerStartInfo) startInfo;
