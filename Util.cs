@@ -85,6 +85,26 @@ namespace MonoDevelop.Debugger.Soft.Unity
 			} else if (Platform.IsWindows) {
 				unityLocation = (File.Exists (unityWinX86)? unityWinX86: unityWin);
 			} 
+
+			// If Unity isn't installed to its default location then another strategy is needed.
+			// Next best option is to guess based on where MonoDevelop is running, as it's
+			// installed side-by-side with Unity.
+			if(string.IsNullOrEmpty(unityLocation) || !File.Exists (unityLocation))
+			{
+				string mdLocation = System.Reflection.Assembly.GetEntryAssembly().Location;
+
+				string sxsPath = string.Empty;
+				if(Platform.IsMac && mdLocation.Contains ("MonoDevelop.app")) {
+					// Go back up to where the application bundle is and look for a Unity.app bundle alongside it
+					sxsPath = mdLocation.Substring(0, mdLocation.LastIndexOf("MonoDevelop.app")) + "Unity.app/Contents/MacOS/Unity";
+				} else if(Platform.IsWindows) {
+					// Strip the "MonoDevelop/bin/MonoDevelop.exe" from the end of the path
+					sxsPath = mdLocation.Substring (0, mdLocation.Length - "MonoDevelop/bin/MonoDevelop.exe".Length) + @"Editor\Unity.exe";
+				}
+
+				if(!String.IsNullOrEmpty(sxsPath) && File.Exists (sxsPath))
+					unityLocation = sxsPath;
+			}
 			
 			return unityLocation;
 		}
