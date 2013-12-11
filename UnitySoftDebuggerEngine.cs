@@ -122,6 +122,7 @@ namespace MonoDevelop.Debugger.Soft.Unity
 			int index = 1;
 			List<ProcessInfo> processes = new List<ProcessInfo> ();
 			Process[] systemProcesses = Process.GetProcesses ();
+			StringComparison comparison = StringComparison.OrdinalIgnoreCase;
 			
 			if (null != unityPlayerConnection) {
 				lock (unityPlayerConnection) {
@@ -140,10 +141,11 @@ namespace MonoDevelop.Debugger.Soft.Unity
 				}
 			}
 			if (null != systemProcesses) {
-				foreach (Process p in Process.GetProcesses ()) {
+				foreach (Process p in systemProcesses) {
 					try {
-						if (p.ProcessName.StartsWith ("unity", StringComparison.OrdinalIgnoreCase) ||
-							p.ProcessName.Contains ("Unity.app")) {
+						if ((p.ProcessName.StartsWith ("unity", comparison) ||
+							p.ProcessName.Contains ("Unity.app")) &&
+							!p.ProcessName.Contains ("UnityShaderCompiler")) {
 							processes.Add (new ProcessInfo (p.Id, string.Format ("{0} ({1})", "Unity Editor", p.ProcessName)));
 						}
 					} catch {
