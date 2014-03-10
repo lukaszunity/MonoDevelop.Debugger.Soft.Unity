@@ -43,7 +43,7 @@ namespace MonoDevelop.Debugger.Soft.Unity
 	/// </summary>
 	public class PlayerConnection
 	{
-		public static readonly int[] PLAYER_MULTICAST_PORTS = new[]{ 54997, 34997, 57997 };
+		public static readonly int[] PLAYER_MULTICAST_PORTS = new[]{ 54997, 34997, 57997, 58997 };
 		public const string PLAYER_MULTICAST_GROUP = "225.0.0.222";
 		public const int MAX_LAST_SEEN_ITERATIONS = 3;
 		
