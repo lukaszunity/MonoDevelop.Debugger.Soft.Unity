@@ -52,10 +52,14 @@ namespace MonoDevelop.Debugger.Soft.Unity
 			get;
 			private set;
 		}
-		
+
+		internal static ConnectorRegistry ConnectorRegistry { get; private set; }
+
+
 		static UnitySoftDebuggerEngine ()
 		{
 			UnityPlayers = new Dictionary<uint, PlayerConnection.PlayerInfo> ();
+			ConnectorRegistry = new ConnectorRegistry();
 			
 			try {
 			// HACK: Poll Unity players
@@ -84,7 +88,8 @@ namespace MonoDevelop.Debugger.Soft.Unity
 		};
 
 		public bool CanDebugCommand (ExecutionCommand command)
-		{			return (command is UnityExecutionCommand && null == session);
+		{
+			return (command is UnityExecutionCommand && null == session);
 		}
 		
 		public DebuggerStartInfo CreateDebuggerStartInfo (ExecutionCommand command)
@@ -112,7 +117,7 @@ namespace MonoDevelop.Debugger.Soft.Unity
 		
 		public DebuggerSession CreateSession ()
 		{
-			session = new UnitySoftDebuggerSession ();
+			session = new UnitySoftDebuggerSession (ConnectorRegistry);
 			session.TargetExited += delegate{ session = null; };
 			return session;
 		}
@@ -153,10 +158,13 @@ namespace MonoDevelop.Debugger.Soft.Unity
 					}
 				}
 			}
-			
+
+			// Direct USB devices
+			iOSDevices.GetUSBDevices(ConnectorRegistry, processes);
+
 			return processes.ToArray ();
 		}
-		
+
 		public string Name {
 			get {
 				return "Mono Soft Debugger for Unity";
@@ -169,6 +177,66 @@ namespace MonoDevelop.Debugger.Soft.Unity
 		public UnityDebuggerStartInfo (string appName)
 			: base (new SoftDebuggerConnectArgs (appName, IPAddress.Loopback, 57432))
 		{
+		}
+	}
+
+
+	// Allows to define how to setup and tear down connection for debugger to connect to the
+	// debugee. For example to setup TCP tunneling over USB.
+	public interface IUnityDbgConnector
+	{
+		SoftDebuggerStartInfo SetupConnection();
+		void OnDisconnect();
+	}
+
+
+	// Manages a map from process id to IUnityDbgConnector, so that services can supply a list of
+	// debugees and how to connect to them, and UnitySoftDebuggerSession can have a way for
+	// establishing a connection to them.
+	public class ConnectorRegistry
+	{
+		// This is used to map process id <-> unique string id. MonoDevelop attachment is built
+		// around process ids.
+		object processIdLock = new object();
+		uint nextProcessId = 1000000;
+		Dictionary<uint, string> processIdToUniqueId = new Dictionary<uint, string>();
+		Dictionary<string, uint> uniqueIdToProcessId = new Dictionary<string, uint>();
+
+		public Dictionary<uint, IUnityDbgConnector> Connectors { get; private set; }
+
+
+		public uint GetProcessIdForUniqueId(string uid)
+		{
+			lock (processIdLock)
+			{
+				uint processId;
+				if (uniqueIdToProcessId.TryGetValue(uid, out processId))
+					return processId;
+
+				processId = nextProcessId++;
+				processIdToUniqueId.Add(processId, uid);
+				uniqueIdToProcessId.Add(uid, processId);
+
+				return processId;
+			}
+		}
+
+
+		public string GetUniqueIdFromProcessId(uint processId)
+		{
+			lock (processIdLock) {
+				string uid;
+				if (processIdToUniqueId.TryGetValue(processId, out uid))
+					return uid;
+
+				return null;
+			}
+		}
+
+
+		public ConnectorRegistry()
+		{
+			Connectors = new Dictionary<uint, IUnityDbgConnector>();
 		}
 	}
 }
