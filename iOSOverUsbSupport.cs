@@ -43,12 +43,14 @@ namespace MonoDevelop.Debugger.Soft.Unity
 		{
 			public int    productId;
 
-			[MarshalAs(UnmanagedType.ByValTStr, SizeConst=40)]
+			[MarshalAs(UnmanagedType.ByValTStr, SizeConst=41)]
 			public string udid;
 		};
 
 		const string nativeDllOsx = "UnityEditor.iOS.Extensions.Native.dylib";
-		const string nativeDllWin = "UnityEditor.iOS.Extensions.Native.dll";
+		const string nativeDllWin32 = "x86\\UnityEditor.iOS.Extensions.Native.dll";
+		const string nativeDllWin64 = "x86_64\\UnityEditor.iOS.Extensions.Native.dll";
+		static IDllLoader loader;
 		static IntPtr dllHandle;
 
 
@@ -75,7 +77,7 @@ namespace MonoDevelop.Debugger.Soft.Unity
 		{
 			if (dllHandle == IntPtr.Zero)
 			{
-				dllHandle = PosixDllLoader.LoadLibrary(nativeDll);
+				dllHandle = loader.LoadLibrary(nativeDll);
 				if (dllHandle != IntPtr.Zero)
 					Console.WriteLine("Loaded: " + nativeDll);
 				else
@@ -89,7 +91,7 @@ namespace MonoDevelop.Debugger.Soft.Unity
 			if (dllHandle == IntPtr.Zero)
 				throw new Exception("iOS native extension dll was not loaded");
 
-			IntPtr addr = PosixDllLoader.GetProcAddress(dllHandle, name);
+			IntPtr addr = loader.GetProcAddress(dllHandle, name);
 			return Marshal.GetDelegateForFunctionPointer(addr, typeof(TType)) as TType;
 		}
 
@@ -109,16 +111,34 @@ namespace MonoDevelop.Debugger.Soft.Unity
 		{
 			if (Platform.IsMac)
 				dllPath = Path.Combine(dllPath, nativeDllOsx);
-			if (Platform.IsWindows)
-				dllPath = Path.Combine(dllPath, nativeDllWin);
+			else if (Platform.IsWindows && Environment.Is64BitProcess)
+				dllPath = Path.Combine(dllPath, nativeDllWin64);
+			else if (Platform.IsWindows)
+				dllPath = Path.Combine(dllPath, nativeDllWin32);
 
 			LoadDll(dllPath);
 			InitFunctions();
 		}
+
+		static Usbmuxd() {
+			if (Platform.IsMac)
+				loader = new PosixDllLoader();
+			else if (Platform.IsWindows)
+				loader = new WindowsDllLoader();
+			else
+				throw new NotSupportedException("Platform not supported");
+		}
 	}
 
 
-	static class PosixDllLoader
+	interface IDllLoader {
+		IntPtr LoadLibrary(string fileName);
+		void FreeLibrary(IntPtr handle);
+		IntPtr GetProcAddress(IntPtr dllHandle, string name);
+	}
+
+
+	class PosixDllLoader: IDllLoader
 	{
 		const int RTLD_LAZY = 1;
 		const int RTLD_NOW = 2;
@@ -137,7 +157,7 @@ namespace MonoDevelop.Debugger.Soft.Unity
 		private static extern IntPtr dlerror();
 
 
-		public static IntPtr LoadLibrary(string fileName)
+		public IntPtr LoadLibrary(string fileName)
 		{
 			// clear previous errors if any
 			dlerror();
@@ -150,13 +170,13 @@ namespace MonoDevelop.Debugger.Soft.Unity
 		}
 
 
-		public static void FreeLibrary(IntPtr handle)
+		public void FreeLibrary(IntPtr handle)
 		{
 			dlclose(handle);
 		}
 
 
-		public static IntPtr GetProcAddress(IntPtr dllHandle, string name)
+		public IntPtr GetProcAddress(IntPtr dllHandle, string name)
 		{
 			// clear previous errors if any
 			dlerror();
@@ -167,6 +187,33 @@ namespace MonoDevelop.Debugger.Soft.Unity
 			}
 			return res;
 		}
+	}
+
+
+	public class WindowsDllLoader: IDllLoader {
+		void IDllLoader.FreeLibrary(IntPtr handle) {
+			FreeLibrary(handle);
+		}
+
+
+		IntPtr IDllLoader.GetProcAddress(IntPtr dllHandle, string name) {
+			return GetProcAddress(dllHandle, name);
+		}
+
+
+		IntPtr IDllLoader.LoadLibrary(string fileName) {
+			return LoadLibrary(fileName);
+		}
+
+
+		[DllImport("kernel32.dll")]
+		private static extern IntPtr LoadLibrary(string fileName);
+
+		[DllImport("kernel32.dll")]
+		private static extern int FreeLibrary(IntPtr handle);
+
+		[DllImport("kernel32.dll")]
+		private static extern IntPtr GetProcAddress (IntPtr handle, string procedureName);
 	}
 
 
@@ -271,7 +318,8 @@ namespace MonoDevelop.Debugger.Soft.Unity
 
 		static bool Setup()
 		{
-			string path = Path.Combine(Path.GetDirectoryName(Util.UnityLocation), "..", "PlaybackEngines", "iOSSupport");
+			string path = Path.Combine(Util.UnityEditorDataFolder, "PlaybackEngines", "iOSSupport");
+
 			// Don't try to load again if it already failed once
 			if (oldUnityPath == path)
 				return false;

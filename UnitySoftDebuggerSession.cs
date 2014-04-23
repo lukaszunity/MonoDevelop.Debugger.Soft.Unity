@@ -180,18 +180,16 @@ namespace MonoDevelop.Debugger.Soft.Unity
 
 		protected override void OnDetach()
 		{
-			// Force disconnection, otherwise it's never closed
-			if (VirtualMachine != null)
-				VirtualMachine.Disconnect();
-
-			if (currentConnector != null)
-				currentConnector.OnDisconnect();
-
 			try {
 				base.OnDetach();
 			} catch (ObjectDisposedException) {
 			} catch (VMDisconnectedException) {
 			} catch (NullReferenceException) {
+			}
+
+			if (currentConnector != null) {
+				currentConnector.OnDisconnect();
+				currentConnector = null;
 			}
 		}
 	}
