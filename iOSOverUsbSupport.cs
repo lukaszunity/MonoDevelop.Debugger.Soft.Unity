@@ -79,9 +79,12 @@ namespace MonoDevelop.Debugger.Soft.Unity
 	{
 		public static void GetUSBDevices(ConnectorRegistry connectors, List<ProcessInfo> processes)
 		{
-			var processId = connectors.GetProcessIdForUniqueId("Any iOS Device");
-			processes.Add(new ProcessInfo(processId, "Unity USB: any iOS device"));
-			connectors.Connectors[processId] = new iOSUsbConnector();
+			if (Platform.IsMac)
+			{
+				var processId = connectors.GetProcessIdForUniqueId("Any iOS Device");
+				processes.Add(new ProcessInfo(processId, "Unity USB: any iOS device"));
+				connectors.Connectors[processId] = new iOSUsbConnector();
+			}
 		}
 	}
 }
