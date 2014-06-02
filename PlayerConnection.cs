@@ -115,43 +115,43 @@ namespace MonoDevelop.Debugger.Soft.Unity
 		public PlayerConnection ()
 		{
 			m_MulticastSockets = new List<Socket> ();
-            NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
-            foreach (NetworkInterface adapter in nics)
-            {
-                if (adapter.Supports(NetworkInterfaceComponent.IPv4) == false)
-                {
-                    continue;
-                }
+			NetworkInterface[] nics = NetworkInterface.GetAllNetworkInterfaces();
+			foreach (NetworkInterface adapter in nics)
+			{
+				if (adapter.Supports(NetworkInterfaceComponent.IPv4) == false)
+				{
+					continue;
+				}
 
 				//Fetching adapter index
 				IPInterfaceProperties adapterProperties = adapter.GetIPProperties();
 				IPv4InterfaceProperties p = adapterProperties.GetIPv4Properties();
 
-                foreach (int port in PLAYER_MULTICAST_PORTS)
-                {
-                    try
-                    {
-                        var multicastSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-                        try { multicastSocket.ExclusiveAddressUse = false; }
-                        catch (SocketException)
-                        {
-                            // This option is not supported on some OSs
-                        }
-                        multicastSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-                        IPEndPoint ipep = new IPEndPoint(IPAddress.Any, port);
-                        multicastSocket.Bind(ipep);
+				foreach (int port in PLAYER_MULTICAST_PORTS)
+				{
+					try
+					{
+						var multicastSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+						try { multicastSocket.ExclusiveAddressUse = false; }
+						catch (SocketException)
+						{
+							// This option is not supported on some OSs
+						}
+						multicastSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+						IPEndPoint ipep = new IPEndPoint(IPAddress.Any, port);
+						multicastSocket.Bind(ipep);
 
-                        IPAddress ip = IPAddress.Parse(PLAYER_MULTICAST_GROUP);
-                        multicastSocket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.AddMembership,
+						IPAddress ip = IPAddress.Parse(PLAYER_MULTICAST_GROUP);
+						multicastSocket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.AddMembership,
 											new MulticastOption(ip, p.Index));
-                        m_MulticastSockets.Add(multicastSocket);
-                    }
-                    catch
-                    {
-                        throw;
-                    }
-                }
-            }
+						m_MulticastSockets.Add(multicastSocket);
+					}
+					catch
+					{
+						throw;
+					}
+				}
+			}
 		}
 		
 		public void Poll ()
