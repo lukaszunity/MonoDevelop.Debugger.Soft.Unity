@@ -48,7 +48,9 @@ namespace MonoDevelop.Debugger.Soft.Unity
 		public static readonly string UnityLocationProperty = "MonoDevelop.Debugger.Soft.Unity.UnityLocation";
 		public static readonly string UnityLaunchProperty = "MonoDevelop.Debugger.Soft.Unity.LaunchUnity";
 		public static readonly string UnityBuildProperty = "MonoDevelop.Debugger.Soft.Unity.BuildUnity";
-		
+
+		public static int UnityProcessId { get; set; }
+
 		/// <summary>
 		/// Configured path to Unity editor
 		/// </summary>

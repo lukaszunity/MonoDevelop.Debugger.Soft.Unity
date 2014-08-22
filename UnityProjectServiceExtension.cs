@@ -61,8 +61,9 @@ namespace MonoDevelop.Debugger.Soft.Unity
 		
 		private bool CanExecuteProject (Project project, ExecutionContext context) {
 			return null != project && 
-			       !string.IsNullOrEmpty (Util.UnityLocation) &&
-			       (File.Exists (Util.UnityLocation) || (MonoDevelop.Core.Platform.IsMac && Directory.Exists (Util.UnityLocation))) &&
+			       ((!string.IsNullOrEmpty (Util.UnityLocation) &&
+			       (File.Exists (Util.UnityLocation) || (MonoDevelop.Core.Platform.IsMac && Directory.Exists (Util.UnityLocation))))
+				   || Util.UnityProcessId != 0) &&
 			       ReferencesUnity (new Project[]{ project });
 		}
 		
