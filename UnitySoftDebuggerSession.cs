@@ -175,16 +175,29 @@ namespace MonoDevelop.Debugger.Soft.Unity
 				}
 				return;
 			}
-			base.OnAttachToProcess (processId);
+
+			long defaultPort = 56000 + (processId % 1000);
+			StartConnecting(new SoftDebuggerStartInfo(new SoftDebuggerConnectArgs(null, IPAddress.Loopback, (int)defaultPort)), 3, 1000);
 		}
 
 		protected override void OnDetach()
 		{
-			try {
-				base.OnDetach();
-			} catch (ObjectDisposedException) {
-			} catch (VMDisconnectedException) {
-			} catch (NullReferenceException) {
+			try
+			{
+				Ide.DispatchService.GuiDispatch(() =>
+					Ide.IdeApp.Workbench.CurrentLayout = UnityProjectServiceExtension.EditLayout
+				);
+
+				base.EndSession();
+			}
+			catch (ObjectDisposedException)
+			{
+			}
+			catch (VMDisconnectedException)
+			{
+			}
+			catch (NullReferenceException)
+			{
 			}
 
 			if (currentConnector != null) {
