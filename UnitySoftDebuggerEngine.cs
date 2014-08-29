@@ -96,19 +96,10 @@ namespace MonoDevelop.Debugger.Soft.Unity
 		{
 			var cmd = command as UnityExecutionCommand;
 			if (null == cmd){ return null; }
-
-			if (Util.UnityProcessId > 0)
-			{
-				int port = 56000 + ( Util.UnityProcessId % 1000);
-				return new SoftDebuggerStartInfo(new SoftDebuggerConnectArgs("Unity", IPAddress.Loopback, port));
-			}
-			else
-			{
-				var msi = new UnityDebuggerStartInfo("Unity");
-				// msi.SetUserAssemblies (null);
-				msi.Arguments = string.Format("-projectPath \"{0}\"", cmd.ProjectPath);
-				return msi;
-			}
+			var msi = new UnityDebuggerStartInfo ("Unity");
+			// msi.SetUserAssemblies (null);
+			msi.Arguments = string.Format ("-projectPath \"{0}\"", cmd.ProjectPath);
+			return msi;
 		}
 
 		public DebuggerFeatures SupportedFeatures {

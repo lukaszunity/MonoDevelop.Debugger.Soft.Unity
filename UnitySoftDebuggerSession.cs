@@ -69,18 +69,9 @@ namespace MonoDevelop.Debugger.Soft.Unity
 		
 		protected override void OnRun (DebuggerStartInfo startInfo)
 		{
-			var udsi = startInfo as UnityDebuggerStartInfo;
-
-			if (udsi != null)
-			{
-				StartUnity(udsi);
-				StartListening(udsi);
-				return;
-			}
-
-			var dsi = startInfo as SoftDebuggerStartInfo;
-
-			StartConnecting(dsi);
+			var dsi = (UnityDebuggerStartInfo) startInfo;
+			StartUnity(dsi);
+			StartListening(dsi);
 		}
 
 		/// <summary>
