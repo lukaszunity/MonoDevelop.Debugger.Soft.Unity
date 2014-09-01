@@ -50,7 +50,6 @@ namespace MonoDevelop.Debugger.Soft.Unity
 	public class UnitySoftDebuggerSession : Mono.Debugging.Soft.SoftDebuggerSession
 	{
 		ConnectorRegistry connectorRegistry;
-		Process unityprocess;
 		string unityPath;
 		public const uint clientPort = 57432;
 		// Connector that was used to make connection for current session.
@@ -66,58 +65,11 @@ namespace MonoDevelop.Debugger.Soft.Unity
 			};
 			MonoDevelop.Ide.IdeApp.Exiting += (sender,args) => EndSession();
 		}
-		
-		protected override void OnRun (DebuggerStartInfo startInfo)
-		{
-			var dsi = (UnityDebuggerStartInfo) startInfo;
-			StartUnity(dsi);
-			StartListening(dsi);
-		}
 
-		/// <summary>
-		/// Launch Unity
-		/// </summary>
-		void StartUnity (UnityDebuggerStartInfo dsi)
+		protected override void OnExit()
 		{
-			if (string.IsNullOrEmpty (unityPath) || !Util.UnityLaunch)
-				return; // Wait for remote connection
-				
-			if (unityprocess != null)
-				throw new InvalidOperationException ("Unity already started");
-				
-			if (Platform.IsMac && Directory.Exists (unityPath)) {
-				dsi.Arguments = string.Format ("-W '{0}' --args {1}", unityPath, dsi.Arguments);
-				unityPath = ("open");
-			}
-			
-			var psi = new ProcessStartInfo (unityPath)
-			{
-				Arguments = dsi.Arguments,
-				UseShellExecute = false,
-				WorkingDirectory = Path.GetDirectoryName (unityPath)
-			};
-
-			// Pass through environment
-			foreach (DictionaryEntry env in Environment.GetEnvironmentVariables ()) {
-				Console.WriteLine ("{0} = \"{1}\"", env.Key, env.Value);
-				psi.EnvironmentVariables[(string)env.Key] = (string)env.Value;
-			}
-			foreach (var env in dsi.EnvironmentVariables) {
-				Console.WriteLine ("{0} = \"{1}\"", env.Key, env.Value);
-				psi.EnvironmentVariables[env.Key] = env.Value;
-			}
-			
-			// Connect back to soft debugger client
-			psi.EnvironmentVariables.Add ("MONO_ARGUMENTS",string.Format ("--debugger-agent=transport=dt_socket,address=127.0.0.1:{0},embedding=1", clientPort));
-			psi.EnvironmentVariables.Add ("MONO_LOG_LEVEL","debug");
-			
-			unityprocess = Process.Start (psi);
-			
-			unityprocess.EnableRaisingEvents = true;
-			unityprocess.Exited += delegate
-			{
-				EndSession ();
-			};
+			Detach();
+			base.OnExit();
 		}
 		
 		protected override void EndSession ()
@@ -126,27 +78,10 @@ namespace MonoDevelop.Debugger.Soft.Unity
 				Ide.DispatchService.GuiDispatch (() =>
 					Ide.IdeApp.Workbench.CurrentLayout = UnityProjectServiceExtension.EditLayout
 				);
-				EndUnityProcess ();
 				base.EndSession ();
 			} catch (Mono.Debugger.Soft.VMDisconnectedException) {
 			} catch (ObjectDisposedException) {
 			}
-		}
-		
-		protected override void OnExit ()
-		{
-			try {
-				EndUnityProcess ();
-				base.OnExit ();
-			} catch (Mono.Debugger.Soft.VMDisconnectedException) {
-			} catch (ObjectDisposedException) {
-			}
-		}
-		
-		void EndUnityProcess ()
-		{
-			Detach ();
-			unityprocess = null;
 		}
 		
 		protected override string GetConnectingMessage (DebuggerStartInfo dsi)
@@ -188,6 +123,7 @@ namespace MonoDevelop.Debugger.Soft.Unity
 					Ide.IdeApp.Workbench.CurrentLayout = UnityProjectServiceExtension.EditLayout
 				);
 
+				VirtualMachine.Detach();
 				base.EndSession();
 			}
 			catch (ObjectDisposedException)
