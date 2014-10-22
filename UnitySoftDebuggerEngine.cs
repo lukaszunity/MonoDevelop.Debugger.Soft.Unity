@@ -61,11 +61,15 @@ namespace MonoDevelop.Debugger.Soft.Unity
 			UnityPlayers = new Dictionary<uint, PlayerConnection.PlayerInfo> ();
 			ConnectorRegistry = new ConnectorRegistry();
 			
+			bool run = true;
+		
+			MonoDevelop.Ide.IdeApp.Exiting += (sender, args) => run = false;
+
 			try {
 			// HACK: Poll Unity players
 			unityPlayerConnection = new PlayerConnection ();
 			ThreadPool.QueueUserWorkItem (delegate {
-				while (true) {
+				while (run) {
 					lock (unityPlayerConnection) {
 						unityPlayerConnection.Poll ();
 					}
